@@ -1,0 +1,27 @@
+# eclipse metadata
+.pdm
+.settings
+.trash
+.uceditor
+.cproject
+.project
+
+# project configuration
+*.pintool
+*.slcp
+*.slps
+
+# project generations
+autogen
+config
+main.c
+app.h
+
+
+# sdk link
+gecko_sdk_4.0.0
+
+# build output
+GNU*
+
+
