@@ -41,6 +41,7 @@
 // Platform Drivers
 #include "sl_button.h"
 #include "sl_simple_button.h"
+#include "sl_simple_button_instances.h"
 
 // Utilities
 #include "printf.h"
@@ -50,6 +51,8 @@
 
 // Coap
 #include "coap_server.h"
+
+#include "gui.h"
 
 otInstance *otGetInstance(void);
 
@@ -105,6 +108,7 @@ void base_station_init(void)
  *****************************************************************************/
 static void openthread_event_handler(otChangedFlags event, void *aContext)
 {
+  otError error;
   (void) aContext;
 
   if(event & OT_CHANGED_ACTIVE_DATASET)
@@ -115,7 +119,20 @@ static void openthread_event_handler(otChangedFlags event, void *aContext)
 
   if(event & OT_CHANGED_THREAD_NETDATA)
   {
+      otOperationalDataset otDataset;
+      error = otDatasetGetActive(otGetInstance(), &otDataset);
+      if(!error)
+      {
+          gui_print_network_channel(otDataset.mChannel);
+      }
+
       printf("Network Dataset Changed\r\n");
+  }
+
+  if(event & OT_CHANGED_THREAD_NETWORK_NAME)
+  {
+      printf("network name changed: %s\r\n", otThreadGetNetworkName(otGetInstance()));
+      gui_print_network_name(otThreadGetNetworkName(otGetInstance()));
   }
 
   if(event & OT_CHANGED_THREAD_NETIF_STATE)
@@ -127,16 +144,19 @@ static void openthread_event_handler(otChangedFlags event, void *aContext)
   {
       printf("Thread Device Role Changed: %s\r\n", otThreadDeviceRoleToString(otThreadGetDeviceRole(otGetInstance())));
 
+      gui_print_device_role(otThreadDeviceRoleToString(otThreadGetDeviceRole(otGetInstance())));
+
       if(otThreadGetDeviceRole(otGetInstance()) == OT_DEVICE_ROLE_LEADER)
       {
-          otError error;
-
           // start commissioner
           error = otCommissionerStart(otGetInstance(), commissioner_callback, joiner_callback, (void*)otGetInstance());
           printf("commissioner start: %s\r\n", otThreadErrorToString(error));
 
           // start coap server
           coap_server_init(otGetInstance());
+
+          gui_print_log("[coap] start");
+          gui_print_log("press 'B' to start");
       }
   }
 
@@ -181,12 +201,19 @@ void commissioner_callback(otCommissionerState aState, void *aContext)
  *****************************************************************************/
 void sl_button_on_change(const sl_button_t *handle)
 {
-    if (sl_button_get_state(handle) == SL_SIMPLE_BUTTON_PRESSED)
-    {
-        otError error;
+  if(handle == &sl_button_btn0)
+  {
+      if (sl_button_get_state(handle) == SL_SIMPLE_BUTTON_PRESSED)
+      {
+          otError error;
 
-        // start joiner
-        error = otCommissionerAddJoiner(otGetInstance(), NULL, COMMISSIONER_JOINER_PSKD, COMMISSIONER_JOINER_TIMEOUT);
-        printf("start_joiner: %s\r\n", otThreadErrorToString(error));
-    }
+          // start joiner
+          error = otCommissionerAddJoiner(otGetInstance(), NULL, COMMISSIONER_JOINER_PSKD, COMMISSIONER_JOINER_TIMEOUT);
+          printf("start_joiner: %s\r\n", otThreadErrorToString(error));
+
+          gui_print_log("[joiner] start");
+      }
+  }
+
+  gui_button_handler(handle);
 }

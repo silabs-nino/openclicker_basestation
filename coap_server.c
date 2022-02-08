@@ -39,6 +39,8 @@
 #include <string.h>
 #include "printf.h"
 
+#include "gui.h"
+
 static otCoapResource   mResource;
 static char*            uri_path        = "question/answer";
 static uint8_t          attr_state[256] = {0};
@@ -83,7 +85,7 @@ static void coap_server_handler(void *aContext, otMessage *aMessage, const otMes
   otCoapMessageInitResponse(response_message, aMessage, OT_COAP_TYPE_ACKNOWLEDGMENT, OT_COAP_CODE_CHANGED);
 
   // message set token
-  otCoapMessageSetToken(aMessage, otCoapMessageGetToken(aMessage), otCoapMessageGetTokenLength(aMessage));
+  otCoapMessageSetToken(response_message, otCoapMessageGetToken(aMessage), otCoapMessageGetTokenLength(aMessage));
 
   // set payload marker
   otCoapMessageSetPayloadMarker(response_message);
@@ -103,21 +105,23 @@ static void coap_server_handler(void *aContext, otMessage *aMessage, const otMes
       {
           goto exit;
       }
-
   }
   else if(OT_COAP_CODE_POST == message_code)
   {
-      char data[32];
+      char data[256];
+      char temp[21];
       uint16_t offset = otMessageGetOffset(aMessage);
-      uint16_t read   = otMessageRead(aMessage, offset, data, sizeof(data));
+      uint16_t read   = otMessageRead(aMessage, offset, data, sizeof(data) - 1);
       data[read]      = '\0';
 
       char ipaddr[OT_IP6_ADDRESS_STRING_SIZE];
 
       otIp6AddressToString(&aMessageInfo->mPeerAddr, ipaddr, OT_IP6_ADDRESS_STRING_SIZE);
 
-      strcpy((char *)attr_state, data);
-      printf("%s POST: %s\r\n", ipaddr, attr_state);
+      snprintf((char *) &temp, 21, "[coap] *%s", (char *) &(data[8]));
+      temp[20] = '\0';
+
+      gui_print_log(temp);
 
       if(OT_COAP_TYPE_CONFIRMABLE == message_type)
       {

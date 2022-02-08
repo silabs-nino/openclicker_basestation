@@ -31,6 +31,7 @@
 
 
 #include "base_station.h"
+#include "gui.h"
 
 
 #include "sl_component_catalog.h"
@@ -99,6 +100,7 @@ void sl_ot_create_instance(void)
  *****************************************************************************/
 void app_init(void)
 {
+  gui_init();
   base_station_init();
 }
 
@@ -109,6 +111,7 @@ void app_process_action(void)
 {
     otTaskletsProcess(sInstance);
     otSysProcessDrivers(sInstance);
+    gui_update();
 }
 
 /**************************************************************************//**
