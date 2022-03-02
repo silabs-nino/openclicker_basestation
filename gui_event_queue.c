@@ -1,6 +1,6 @@
 /***************************************************************************//**
  * @file
- * @brief GUI Header file for Remote Node
+ * @brief GUI Event Queue
  *******************************************************************************
  * # License
  * <b>Copyright 2022 Silicon Laboratories Inc. www.silabs.com</b>
@@ -34,58 +34,32 @@
  * Silicon Labs may update projects from time to time.
  ******************************************************************************/
 
-#ifndef GUI_H_
-#define GUI_H_
+#include "ring_buffer.h"
+#include "gui_event_queue.h"
 
-#define TITLE_STR                 "OpenClicker Base"
-#define TITLE_LINE                0
-#define TITLE_OFFSET_X            0
-#define TITLE_OFFSET_Y            1
+#define EVENT_QUEUE_BUFFER_SIZE 16
 
-#define THREAD_INFO_LINE          1
-#define THREAD_INFO_OFFSET_X      2
-#define THREAD_INFO_OFFSET_Y      4
+static gui_event_t gui_events[EVENT_QUEUE_BUFFER_SIZE];
+static void*       buffer[EVENT_QUEUE_BUFFER_SIZE];
 
-#define LOG_LINE                  6
-#define LOG_OFFSET_X              2
-#define LOG_OFFSET_Y              0
-#define LOG_BUFFER_LEN            4
+ring_buffer_handle_t  gui_event_queue = {
+    .buffer   = &buffer,
+    .head     = 0,
+    .tail     = 0,
+    .size     = sizeof(gui_event_t),
+    .capacity = EVENT_QUEUE_BUFFER_SIZE,
+};
 
-#define ADDR_LINE                 10
-#define ADDR_OFFSET_X             0
-#define ADDR_OFFSET_Y             3
+sl_status_t gui_event_queue_init(void)
+{
+  sl_status_t error = SL_STATUS_OK;
 
-#define DISPLAY_LOG_MAX_STR_LEN   21
+  for(uint32_t i = 0; i < EVENT_QUEUE_BUFFER_SIZE; i++)
+  {
+      buffer[i] = &gui_events[i];
+  }
 
-#define GUI_EVENT_BUTTON_0        (1 << 0)
-#define GUI_EVENT_BUTTON_1        (1 << 1)
-#define GUI_EVENT_NTWK_NAME       (1 << 2)
-#define GUI_EVENT_NTWK_CH         (1 << 3)
-#define GUI_EVENT_DEVICE_ROLE     (1 << 4)
-#define GUI_EVENT_LOG_MSG         (1 << 5)
+  error = ring_buffer_init(&gui_event_queue);
 
-#include "glib.h"
-#include "sl_button.h"
-
-typedef struct {
-  GLIB_Rectangle_t  rect;
-  char              name;
-} button_t;
-
-typedef struct {
-  uint32_t          event;
-  char              info[32];
-} event_t;
-
-
-void gui_init(void);
-void gui_update(void);
-void gui_button_handler(const sl_button_t *handle);
-void gui_print_log(char *string);
-void gui_print_network_name(char *string);
-void gui_print_network_channel(char *ch);
-void gui_print_device_role(char *string);
-void gui_print_mac_addr(char *mac_str);
-
-
-#endif /* GUI_H_ */
+  return error;
+}

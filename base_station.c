@@ -54,6 +54,7 @@
 
 // GUI
 #include "gui.h"
+#include "gui_event_queue.h"
 
 
 
@@ -113,6 +114,10 @@ void base_station_init(otInstance* instance)
 static void openthread_event_handler(otChangedFlags event, void *aContext)
 {
   otError error;
+  gui_event_t gui_event = {
+      .flag = 0,
+      .msg  = {0},
+  };
 
   if(event & OT_CHANGED_ACTIVE_DATASET)
   {
@@ -125,7 +130,10 @@ static void openthread_event_handler(otChangedFlags event, void *aContext)
       error = otDatasetGetActive(aContext, &otDataset);
       if(!error)
       {
-          gui_print_network_channel(otDataset.mChannel);
+          gui_event.flag = GUI_EVENT_FLAG_NTWK_CH;
+          snprintf((char *) &gui_event.msg, GUI_EVENT_MSG_SIZE, "%d", otDataset.mChannel);
+          ring_buffer_add(&gui_event_queue, &gui_event);
+
       }
 
       printf("Network Dataset Changed\r\n");
@@ -134,7 +142,11 @@ static void openthread_event_handler(otChangedFlags event, void *aContext)
   if(event & OT_CHANGED_THREAD_NETWORK_NAME)
   {
       printf("network name changed: %s\r\n", otThreadGetNetworkName(aContext));
-      gui_print_network_name(otThreadGetNetworkName(aContext));
+
+      gui_event.flag = GUI_EVENT_FLAG_NTWK_NAME;
+      snprintf((char *) &gui_event.msg, GUI_EVENT_MSG_SIZE, "%s", otThreadGetNetworkName(aContext));
+      ring_buffer_add(&gui_event_queue, &gui_event);
+
   }
 
   if(event & OT_CHANGED_THREAD_NETIF_STATE)
@@ -146,7 +158,10 @@ static void openthread_event_handler(otChangedFlags event, void *aContext)
   {
       printf("Thread Device Role Changed: %s\r\n", otThreadDeviceRoleToString(otThreadGetDeviceRole(aContext)));
 
-      gui_print_device_role(otThreadDeviceRoleToString(otThreadGetDeviceRole(aContext)));
+
+      gui_event.flag = GUI_EVENT_FLAG_NTWK_ROLE;
+      snprintf((char *) &gui_event.msg, GUI_EVENT_MSG_SIZE, "%s", otThreadDeviceRoleToString(otThreadGetDeviceRole(aContext)));
+      ring_buffer_add(&gui_event_queue, &gui_event);
 
       if(otThreadGetDeviceRole(aContext) == OT_DEVICE_ROLE_LEADER)
       {
@@ -157,8 +172,14 @@ static void openthread_event_handler(otChangedFlags event, void *aContext)
           // start coap server
           coap_server_init(aContext);
 
-          gui_print_log("[coap] start");
-          gui_print_log("press 'B' to start");
+          gui_event.flag = GUI_EVENT_FLAG_LOG;
+          snprintf((char *)gui_event.msg, GUI_EVENT_MSG_SIZE, "[coap] start");
+          ring_buffer_add(&gui_event_queue, &gui_event);
+
+          gui_event.flag = GUI_EVENT_FLAG_LOG;
+          snprintf((char *)gui_event.msg, GUI_EVENT_MSG_SIZE, "press 'B' to start");
+          ring_buffer_add(&gui_event_queue, &gui_event);
+
       }
   }
 
@@ -182,8 +203,6 @@ void joiner_callback(otCommissionerJoinerEvent aEvent, const otJoinerInfo *aJoin
 
   printf("joiner_callback event: %s\r\n", state[aEvent]);
 
-
-
 }
 
 /**************************************************************************//**
@@ -203,6 +222,11 @@ void commissioner_callback(otCommissionerState aState, void *aContext)
  *****************************************************************************/
 void sl_button_on_change(const sl_button_t *handle)
 {
+  gui_event_t gui_event = {
+      .flag = 0,
+      .msg  = {0},
+  };
+
   if(handle == &sl_button_btn0)
   {
       if (sl_button_get_state(handle) == SL_SIMPLE_BUTTON_PRESSED)
@@ -213,7 +237,9 @@ void sl_button_on_change(const sl_button_t *handle)
           error = otCommissionerAddJoiner(sInstance, NULL, COMMISSIONER_JOINER_PSKD, COMMISSIONER_JOINER_TIMEOUT);
           printf("start_joiner: %s\r\n", otThreadErrorToString(error));
 
-          gui_print_log("[joiner] start");
+          gui_event.flag = GUI_EVENT_FLAG_LOG;
+          snprintf((char *)gui_event.msg, GUI_EVENT_MSG_SIZE, "[joiner] start");
+          ring_buffer_add(&gui_event_queue, &gui_event);
       }
   }
 

@@ -40,6 +40,7 @@
 #include "printf.h"
 
 #include "gui.h"
+#include "gui_event_queue.h"
 
 static otCoapResource   mResource;
 static char*            uri_path        = "question/answer";
@@ -79,6 +80,11 @@ static void coap_server_handler(void *aContext, otMessage *aMessage, const otMes
 
   otMessage  *response_message;
 
+  gui_event_t gui_event = {
+      .flag = 0,
+      .msg  = {0},
+  };
+
   response_message = otCoapNewMessage((otInstance *)aContext, NULL);
 
   // set up response message
@@ -109,7 +115,6 @@ static void coap_server_handler(void *aContext, otMessage *aMessage, const otMes
   else if(OT_COAP_CODE_POST == message_code)
   {
       char data[256];
-      char temp[21];
       uint16_t offset = otMessageGetOffset(aMessage);
       uint16_t read   = otMessageRead(aMessage, offset, data, sizeof(data) - 1);
       data[read]      = '\0';
@@ -118,10 +123,9 @@ static void coap_server_handler(void *aContext, otMessage *aMessage, const otMes
 
       otIp6AddressToString(&aMessageInfo->mPeerAddr, ipaddr, OT_IP6_ADDRESS_STRING_SIZE);
 
-      snprintf((char *) &temp, 21, "[coap] *%s", (char *) &(data[8]));
-      temp[20] = '\0';
-
-      gui_print_log(temp);
+      gui_event.flag = GUI_EVENT_FLAG_LOG;
+      snprintf((char *)gui_event.msg, GUI_EVENT_MSG_SIZE, "[coap] *%s", (char *) &(data[8]));
+      ring_buffer_add(&gui_event_queue, &gui_event);
 
       if(OT_COAP_TYPE_CONFIRMABLE == message_type)
       {

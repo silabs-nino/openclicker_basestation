@@ -1,6 +1,6 @@
 /***************************************************************************//**
  * @file
- * @brief GUI Header file for Remote Node
+ * @brief Ring Buffer Implementation
  *******************************************************************************
  * # License
  * <b>Copyright 2022 Silicon Laboratories Inc. www.silabs.com</b>
@@ -33,59 +33,30 @@
  * maintained and there may be no bug maintenance planned for these resources.
  * Silicon Labs may update projects from time to time.
  ******************************************************************************/
+#ifndef RING_BUFFER_H_
+#define RING_BUFFER_H_
 
-#ifndef GUI_H_
-#define GUI_H_
-
-#define TITLE_STR                 "OpenClicker Base"
-#define TITLE_LINE                0
-#define TITLE_OFFSET_X            0
-#define TITLE_OFFSET_Y            1
-
-#define THREAD_INFO_LINE          1
-#define THREAD_INFO_OFFSET_X      2
-#define THREAD_INFO_OFFSET_Y      4
-
-#define LOG_LINE                  6
-#define LOG_OFFSET_X              2
-#define LOG_OFFSET_Y              0
-#define LOG_BUFFER_LEN            4
-
-#define ADDR_LINE                 10
-#define ADDR_OFFSET_X             0
-#define ADDR_OFFSET_Y             3
-
-#define DISPLAY_LOG_MAX_STR_LEN   21
-
-#define GUI_EVENT_BUTTON_0        (1 << 0)
-#define GUI_EVENT_BUTTON_1        (1 << 1)
-#define GUI_EVENT_NTWK_NAME       (1 << 2)
-#define GUI_EVENT_NTWK_CH         (1 << 3)
-#define GUI_EVENT_DEVICE_ROLE     (1 << 4)
-#define GUI_EVENT_LOG_MSG         (1 << 5)
-
-#include "glib.h"
-#include "sl_button.h"
+#include "sl_status.h"
 
 typedef struct {
-  GLIB_Rectangle_t  rect;
-  char              name;
-} button_t;
+  const uint32_t*   buffer;     // pointer to the buffer
+        uint32_t    head;       // index the producer writes to
+        uint32_t    tail;       // index the consumer reads from
+  const uint32_t    size;       // size of datatype
+  const uint32_t    capacity;   // max number of entries
+} ring_buffer_handle_t;
 
-typedef struct {
-  uint32_t          event;
-  char              info[32];
-} event_t;
+// init
+sl_status_t ring_buffer_init( ring_buffer_handle_t* handle);
+
+// reset
+sl_status_t ring_buffer_reset( ring_buffer_handle_t* handle);
+
+// add
+sl_status_t ring_buffer_add( ring_buffer_handle_t* handle, void* data);
+
+// get
+sl_status_t ring_buffer_get( ring_buffer_handle_t* handle, void* data);
 
 
-void gui_init(void);
-void gui_update(void);
-void gui_button_handler(const sl_button_t *handle);
-void gui_print_log(char *string);
-void gui_print_network_name(char *string);
-void gui_print_network_channel(char *ch);
-void gui_print_device_role(char *string);
-void gui_print_mac_addr(char *mac_str);
-
-
-#endif /* GUI_H_ */
+#endif /* RING_BUFFER_H_ */
