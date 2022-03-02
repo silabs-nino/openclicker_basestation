@@ -47,19 +47,19 @@
 #include "gui.h"
 
 // local functions
-static void display_init(void);
-static void draw_button(const button_t* button, bool pressed);
+static  void display_init(void);
+static  void draw_button(const button_t* button, bool pressed);
 
 // local vars
-static char                     log_buffer[LOG_BUFFER_LEN][DISPLAY_LOG_MAX_STR_LEN + 1];
-static uint8_t                  log_index;
-static const GLIB_Rectangle_t   log_window = {0, 55, 127, 98};
+static  char                     log_buffer[LOG_BUFFER_LEN][DISPLAY_LOG_MAX_STR_LEN + 1];
+static  uint8_t                  log_index;
+static  const GLIB_Rectangle_t   log_window = {0, 55, 127, 98};
 
-static GLIB_Context_t           glib_context;
-static bool                     update_display;
+static  GLIB_Context_t           glib_context;
+static  bool                     update_display;
 
-static const button_t           button_left     = {{ 1, 113,  62, 126}, 'A'};
-static const button_t           button_right    = {{65, 113, 126, 126}, 'B'};
+static  const button_t           button_left     = {{ 1, 113,  62, 126}, 'A'};
+static  const button_t           button_right    = {{65, 113, 126, 126}, 'B'};
 
 
 static void display_init(void)

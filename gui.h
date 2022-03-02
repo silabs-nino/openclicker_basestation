@@ -57,6 +57,13 @@
 
 #define DISPLAY_LOG_MAX_STR_LEN   21
 
+#define GUI_EVENT_BUTTON_0        (1 << 0)
+#define GUI_EVENT_BUTTON_1        (1 << 1)
+#define GUI_EVENT_NTWK_NAME       (1 << 2)
+#define GUI_EVENT_NTWK_CH         (1 << 3)
+#define GUI_EVENT_DEVICE_ROLE     (1 << 4)
+#define GUI_EVENT_LOG_MSG         (1 << 5)
+
 #include "glib.h"
 #include "sl_button.h"
 
@@ -65,6 +72,10 @@ typedef struct {
   char              name;
 } button_t;
 
+typedef struct {
+  uint32_t          event;
+  char              info[32];
+} event_t;
 
 
 void gui_init(void);

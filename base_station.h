@@ -37,6 +37,6 @@
 #ifndef BASE_STATION_H_
 #define BASE_STATION_H_
 
-void base_station_init(void);
+void base_station_init(otInstance* instance);
 
 #endif /* BASE_STATION_H_ */

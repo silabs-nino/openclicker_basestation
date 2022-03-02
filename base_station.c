@@ -52,9 +52,10 @@
 // Coap
 #include "coap_server.h"
 
+// GUI
 #include "gui.h"
 
-otInstance *otGetInstance(void);
+
 
 // declaring functions
 static void openthread_event_handler(otChangedFlags event, void *aContext);
@@ -62,41 +63,44 @@ void joiner_callback(otCommissionerJoinerEvent aEvent, const otJoinerInfo *aJoin
 void commissioner_callback(otCommissionerState aState, void *aContext);
 
 static otOperationalDataset sDataset;
+static otInstance*          sInstance = NULL;
 
 /**************************************************************************//**
  * Base Station Init
  *
  * @param otInstance - pointer to openthread instance
  *****************************************************************************/
-void base_station_init(void)
+void base_station_init(otInstance* instance)
 {
-  // test logging output and application alive state
-  printf("Hello from the base station app_init\r\n");
-
   otError error;
 
+  // set openthread instance
+  sInstance = instance;
+
+  printf("Hello from the base station app_init\r\n");
+
   // register callback for Thread Stack Events
-  error = otSetStateChangedCallback(otGetInstance(), openthread_event_handler, (void *)otGetInstance());
+  error = otSetStateChangedCallback(sInstance, openthread_event_handler, (void *)sInstance);
   printf("registering event callback: %s\r\n", otThreadErrorToString(error));
 
-  // > dataset init new
-  error = otDatasetCreateNewNetwork(otGetInstance(), &sDataset);
+  // create a new dataset
+  error = otDatasetCreateNewNetwork(sInstance, &sDataset);
   printf("creating new dataset: %s\r\n", otThreadErrorToString(error));
 
   // change dataset network name to OPENTHREAD_NETWORK_NAME
   error = otNetworkNameFromString(&(sDataset.mNetworkName), OPENTHREAD_NETWORK_NAME);
   printf("setting network name to OpenClicker: %s\r\n", otThreadErrorToString(error));
 
-  // > dataset set active
-  error = otDatasetSetActive(otGetInstance(), &sDataset);
+  // set active dataset
+  error = otDatasetSetActive(sInstance, &sDataset);
   printf("setting active dataset: %s\r\n", otThreadErrorToString(error));
 
-  // > ifconfig up
-  error = otIp6SetEnabled(otGetInstance(), true);
+  // enable interface
+  error = otIp6SetEnabled(sInstance, true);
   printf("enabling interface: %s\r\n", otThreadErrorToString(error));
 
-  // > thread start
-  error = otThreadSetEnabled(otGetInstance(), true);
+  // start thread radio stack
+  error = otThreadSetEnabled(sInstance, true);
   printf("starting thread: %s\r\n", otThreadErrorToString(error));
 }
 
@@ -109,18 +113,16 @@ void base_station_init(void)
 static void openthread_event_handler(otChangedFlags event, void *aContext)
 {
   otError error;
-  (void) aContext;
 
   if(event & OT_CHANGED_ACTIVE_DATASET)
   {
       printf("Active Dataset Changed\r\n");
   }
 
-
   if(event & OT_CHANGED_THREAD_NETDATA)
   {
       otOperationalDataset otDataset;
-      error = otDatasetGetActive(otGetInstance(), &otDataset);
+      error = otDatasetGetActive(aContext, &otDataset);
       if(!error)
       {
           gui_print_network_channel(otDataset.mChannel);
@@ -131,29 +133,29 @@ static void openthread_event_handler(otChangedFlags event, void *aContext)
 
   if(event & OT_CHANGED_THREAD_NETWORK_NAME)
   {
-      printf("network name changed: %s\r\n", otThreadGetNetworkName(otGetInstance()));
-      gui_print_network_name(otThreadGetNetworkName(otGetInstance()));
+      printf("network name changed: %s\r\n", otThreadGetNetworkName(aContext));
+      gui_print_network_name(otThreadGetNetworkName(aContext));
   }
 
   if(event & OT_CHANGED_THREAD_NETIF_STATE)
   {
-      printf("Network Interface State Changed: %d\r\n", otIp6IsEnabled(otGetInstance()));
+      printf("Network Interface State Changed: %d\r\n", otIp6IsEnabled(aContext));
   }
 
   if(event & OT_CHANGED_THREAD_ROLE)
   {
-      printf("Thread Device Role Changed: %s\r\n", otThreadDeviceRoleToString(otThreadGetDeviceRole(otGetInstance())));
+      printf("Thread Device Role Changed: %s\r\n", otThreadDeviceRoleToString(otThreadGetDeviceRole(aContext)));
 
-      gui_print_device_role(otThreadDeviceRoleToString(otThreadGetDeviceRole(otGetInstance())));
+      gui_print_device_role(otThreadDeviceRoleToString(otThreadGetDeviceRole(aContext)));
 
-      if(otThreadGetDeviceRole(otGetInstance()) == OT_DEVICE_ROLE_LEADER)
+      if(otThreadGetDeviceRole(aContext) == OT_DEVICE_ROLE_LEADER)
       {
           // start commissioner
-          error = otCommissionerStart(otGetInstance(), commissioner_callback, joiner_callback, (void*)otGetInstance());
+          error = otCommissionerStart(aContext, commissioner_callback, joiner_callback, (void*)aContext);
           printf("commissioner start: %s\r\n", otThreadErrorToString(error));
 
           // start coap server
-          coap_server_init(otGetInstance());
+          coap_server_init(aContext);
 
           gui_print_log("[coap] start");
           gui_print_log("press 'B' to start");
@@ -162,7 +164,7 @@ static void openthread_event_handler(otChangedFlags event, void *aContext)
 
   if(event & OT_CHANGED_JOINER_STATE)
   {
-      printf("Thread Joiner State Changed: %d\r\n", otJoinerGetState(otGetInstance()));
+      printf("Thread Joiner State Changed: %d\r\n", otJoinerGetState(aContext));
   }
 
 }
@@ -208,7 +210,7 @@ void sl_button_on_change(const sl_button_t *handle)
           otError error;
 
           // start joiner
-          error = otCommissionerAddJoiner(otGetInstance(), NULL, COMMISSIONER_JOINER_PSKD, COMMISSIONER_JOINER_TIMEOUT);
+          error = otCommissionerAddJoiner(sInstance, NULL, COMMISSIONER_JOINER_PSKD, COMMISSIONER_JOINER_TIMEOUT);
           printf("start_joiner: %s\r\n", otThreadErrorToString(error));
 
           gui_print_log("[joiner] start");
