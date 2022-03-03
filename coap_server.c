@@ -41,6 +41,7 @@
 
 #include "gui.h"
 #include "gui_event_queue.h"
+#include "sl_simple_led_instances.h"
 
 static otCoapResource   mResource;
 static char*            uri_path        = "question/answer";
@@ -126,6 +127,9 @@ static void coap_server_handler(void *aContext, otMessage *aMessage, const otMes
       gui_event.flag = GUI_EVENT_FLAG_LOG;
       snprintf((char *)gui_event.msg, GUI_EVENT_MSG_SIZE, "[coap] *%s", (char *) &(data[8]));
       ring_buffer_add(&gui_event_queue, &gui_event);
+
+      // led indication of msg received
+      sl_led_toggle(&sl_led_led0);
 
       if(OT_COAP_TYPE_CONFIRMABLE == message_type)
       {
